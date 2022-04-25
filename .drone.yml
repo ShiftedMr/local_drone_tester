@@ -1,0 +1,44 @@
+kind: pipeline
+type: docker
+name: default
+trigger:
+  event:
+  - push
+volumes:
+- name: gopath
+  temp: {}
+
+steps:
+- name: test
+  image: golang:1.17
+  volumes:
+  - name: gopath
+    path: /go  
+  commands:
+  - make test
+
+- name: build
+  image: golang:1.17
+  volumes:
+  - name: gopath
+    path: /go
+  commands:
+  - echo "this is the build step"
+  - echo "auto pass"
+
+---
+kind: pipeline
+type: docker
+name: Promotion test
+
+steps:
+- name: test
+  image: golang:1.17
+  commands:
+  - echo "Hey <user>, This is a promotion"
+  - sleep 10
+  - echo "Guess I'm Done"
+
+trigger:
+  event:
+  - promote
