@@ -37,7 +37,7 @@ steps:
   commands:
   - echo "Hey <user>, This is a promotion"
   - sleep 10
-  - echo "Guess I'm Done"
+  - echo "Guess I'm Done."
 
 trigger:
   event:
