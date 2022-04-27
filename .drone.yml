@@ -16,7 +16,6 @@ steps:
   image: docker:git
   ## If you wanted to solve resolving part
   commands:
-    - ping -c 1 localgitea.local
     - git clone http://localgitea.local:3001/shiftedmr/drone_test_world.git
 
 - name: test
