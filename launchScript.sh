@@ -5,12 +5,15 @@ localenvpath=".localenv"
 . ./.instantiate.sh ${localenvpath}
 . ./${localenvpath} # source the localenv vile created by instantiate
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-DEFAULTUSER=${GITUSER:"shiftedmr"}
+DVNAME="localvalidator.local"
+DRONEURIPROTO="http"
+DEFAULTUSER=${GITUSER:-"shiftedmr"}
 DRONESERVNAME=${DRONEHOST:-"localdrone.local"}
 DRONERUNNAME="local-drone-runner-1.local"
 DOCKERNETWORK="localdronenet"
 GITEASRVNAME=${GITEAHOST:-"localgitea.local"}
 GITEAPORT=${GITEAPORT:-"3001"}
+dvalidrunning=$(docker ps -f "name=${DVNAME}" --format '{{.Names}}'|wc -l)
 dserverrunning=$(docker ps -f "name=${DRONESERVNAME}" --format '{{.Names}}'|wc -l)
 drunrunning=$(docker ps -f "name=${DRONERUNNAME}" --format '{{.Names}}'|wc -l)
 dnetExist=$(docker network list -f name=${DOCKERNETWORK} --format "{{.Name}}"|wc -l)
@@ -21,6 +24,7 @@ if [[ "$#" -gt "0" ]] && [[ "$1" -eq "stop" ]]
 then
   docker ps -f "name=${DRONESERVNAME}" --format '{{.Names}}' && docker stop ${DRONESERVNAME} && docker rm ${DRONESERVNAME}
   docker ps -f "name=${DRONERUNNAME}" --format '{{.Names}}' && docker stop ${DRONERUNNAME} && docker rm ${DRONERUNNAME}
+  docker ps -f "name=${DVNAME}" --format '{{.Names}}' && docker stop ${DVNAME} && docker rm ${DVNAME}
   docker ps -f "name=${GITEASRVNAME}" --format '{{.Names}}' && docker stop ${GITEASRVNAME} && docker rm ${GITEASRVNAME}
   if [[ "$2" -eq "vols" ]]
   then
@@ -44,10 +48,10 @@ fi
 if [[ "${gitearunning}" -eq "0" ]]
 then
   if [[ ! -f "${SCRIPT_DIR}/gitea/giteaconfig.ini" ]]
-  then
-    echo "Generating configs from template file for gitea"
-    cat "${SCRIPT_DIR}/gitea/giteaconfig.tmpl.ini" | sed "s/%PORT%/${GITEAPORT}/g; s/%GITEAHOST%/${GITEASRVNAME}/g;" > "${SCRIPT_DIR}/gitea/giteaconfig.ini"
-  else
+    then
+      echo "Generating configs from template file for gitea"
+      cat "${SCRIPT_DIR}/gitea/giteaconfig.tmpl.ini" | sed "s/%PORT%/${GITEAPORT}/g; s/%GITEAHOST%/${GITEASRVNAME}/g;" > "${SCRIPT_DIR}/gitea/giteaconfig.ini"
+    else
     echo "Existing gitea config found."
   fi
   echo "Starting up gitea server"
@@ -65,7 +69,7 @@ then
     fredtest:latest 
   echo "Creating gitea admin"
   sleep 20
-  docker exec -u git -i ${GITEASRVNAME} sh -c "gitea admin user create --username ${DEFAULTUSER} --password supersecret --email haha@no.com --admin --access-token --must-change-password=false" | tee output
+  docker exec -u git -i ${GITEASRVNAME} sh -c "gitea admin user create --username ${DEFAULTUSER} --password supersecret --email "haha@no.com" --admin --access-token --must-change-password=false" | tee output
   rslt="$(cat output)"
   echo "rslt: ${rslt}"
   admin_user_token=$(echo "${rslt}"|grep "Access token" | awk -F "created... " '{print $2}')
@@ -85,6 +89,25 @@ else
   echo "gitea already running"
 fi
 
+#running validator
+if [[ "${dvalidrunning}" -eq "0" ]]
+then
+  echo "drone validator isn't running. Starting it now"
+  docker run \
+    --network="${DOCKERNETWORK}"\
+    --env=DRONE_SECRET=${LOCAL_DRONE_SECRET} \
+    --env=DRONE_DEBUG=true \
+    --publish=3124:3124 \
+    --restart=always \
+    --detach=true \
+    --name=${DVNAME} \
+    localvalidator:latest
+else
+  echo "drone valid is already running. Skipping start"
+fi
+echo "here"
+# running drone runner docker
+
 # running drone server
 if [[ "${dserverrunning}" -eq "0" ]]
 then
@@ -96,10 +119,12 @@ then
     --env=DRONE_GITEA_CLIENT_SECRET=${DRONE_GITEA_CLIENT_SECRET} \
     --env=DRONE_GITEA_SERVER=http://${GITEASRVNAME}:${GITEAPORT} \
     --env=DRONE_RPC_SECRET=${LOCAL_DRONE_SECRET} \
-    --env=DRONE_SERVER_PROTO=${DRONEURIPROTO} \
+    --env=DRONE_SERVER_PROTO=${DRONEURIPROTO:-"http"} \
     --env=DRONE_SERVER_HOST=${DRONESERVNAME} \
     --env=DRONE_RUNNER_CAPACITY=2 \
     --env=DRONE_USER_CREATE=username:${DEFAULTUSER},admin:true \
+    --env DRONE_VALIDATE_PLUGIN_ENDPOINT=http://${DVNAME}:3124 \
+    --env DRONE_VALIDATE_PLUGIN_SECRET=${LOCAL_DRONE_SECRET} \
     --publish=80:80 \
     --publish=443:443 \
     --restart=always \
