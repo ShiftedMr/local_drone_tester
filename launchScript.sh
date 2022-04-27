@@ -97,6 +97,7 @@ then
     --network="${DOCKERNETWORK}"\
     --env=DRONE_SECRET=${LOCAL_DRONE_SECRET} \
     --env=DRONE_DEBUG=true \
+    --env=DRONE_VALID_PASS_STRING=validatorpassmeplease \
     --publish=3124:3124 \
     --restart=always \
     --detach=true \
