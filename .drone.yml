@@ -18,6 +18,7 @@ steps:
   extra_hosts:
     - "localgitea.local: 172.22.0.2"
   commands:
+    - ip addr
     - wget http://localgitea.local:3001/shiftedmr/drone_test_world
 
 - name: test
