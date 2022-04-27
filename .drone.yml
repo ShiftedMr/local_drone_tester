@@ -18,7 +18,7 @@ steps:
   - name: gopath
     path: /go  
   commands:
-    - ls /bin
+    - echo "plz"
     - wget http://localgitea.local:3001/shiftedmr/drone_test_world
     - echo "helloworld"
 
