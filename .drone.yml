@@ -12,14 +12,6 @@ clone:
   disable: true
 
 steps:
-- name: myclone
-  image: docker:git
-  ## If you wanted to solve resolving part
-  extra_hosts:
-    - "localgitea.local: 172.22.0.2"
-  commands:
-    - ip addr
-    - wget http://localgitea.local:3001/shiftedmr/drone_test_world
 
 - name: test
   image: golang:1.17
@@ -27,6 +19,8 @@ steps:
   - name: gopath
     path: /go  
   commands:
+    - ip addr
+    - wget http://localgitea.local:3001/shiftedmr/drone_test_world
   - echo "helloworld"
 
 - name: build
