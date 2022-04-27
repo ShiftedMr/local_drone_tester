@@ -19,14 +19,13 @@ steps:
     - ping -c 1 localgitea.local
     - git clone http://localgitea.local:3001/shiftedmr/drone_test_world.git
 
-steps:
 - name: test
   image: golang:1.17
   volumes:
   - name: gopath
     path: /go  
   commands:
-  - make test
+  - echo "helloworld"
 
 - name: build
   image: golang:1.17
