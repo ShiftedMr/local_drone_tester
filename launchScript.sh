@@ -5,11 +5,12 @@ localenvpath=".localenv"
 . ./.instantiate.sh ${localenvpath}
 . ./${localenvpath} # source the localenv vile created by instantiate
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-DEFAULTUSER="shiftedmr"
-DRONESERVNAME="localdrone.local"
+DEFAULTUSER=${GITUSER:"shiftedmr"}
+DRONESERVNAME=${DRONEHOST:-"localdrone.local"}
 DRONERUNNAME="local-drone-runner-1.local"
 DOCKERNETWORK="localdronenet"
-GITEASRVNAME="localgitea.local"
+GITEASRVNAME=${GITEAHOST:-"localgitea.local"}
+GITEAPORT=${GITEAPORT:-"3001"}
 dserverrunning=$(docker ps -f "name=${DRONESERVNAME}" --format '{{.Names}}'|wc -l)
 drunrunning=$(docker ps -f "name=${DRONERUNNAME}" --format '{{.Names}}'|wc -l)
 dnetExist=$(docker network list -f name=${DOCKERNETWORK} --format "{{.Name}}"|wc -l)
@@ -42,6 +43,13 @@ fi
 #gitea
 if [[ "${gitearunning}" -eq "0" ]]
 then
+  if [[ ! -f "${SCRIPT_DIR}/gitea/giteaconfig.ini" ]]
+  then
+    echo "Generating configs from template file for gitea"
+    cat "${SCRIPT_DIR}/gitea/giteaconfig.tmpl.ini" | sed "s/%PORT%/${GITEAPORT}/g; s/%GITEAHOST%/${GITEASRVNAME}/g;" > "${SCRIPT_DIR}/gitea/giteaconfig.ini"
+  else
+    echo "Existing gitea config found."
+  fi
   echo "Starting up gitea server"
   docker run \
     -it --network="${DOCKERNETWORK}" --name=${GITEASRVNAME} \
@@ -49,7 +57,7 @@ then
     --env=USER_GID=1000 \
     --detach=true \
     --publish=222:22 \
-    --publish=3001:3001 \
+    --publish=${GITEAPORT}:${GITEAPORT} \
     --volume=${SCRIPT_DIR}/volumes/giteavol:/data \
     --volume=/etc/timezone:/etc/timezone:ro \
     --volume /etc/localtime:/etc/localtime:ro \
@@ -63,7 +71,7 @@ then
   admin_user_token=$(echo "${rslt}"|grep "Access token" | awk -F "created... " '{print $2}')
   echo "creating drone oauth app in gitea"
   jsonbody='{"Name":"localdroneapp","redirect_uris":["http://--DRONE--/login"]}'
-  oauth_app_json_blob=$(curl -d"${jsonbody/--DRONE--/${DRONESERVNAME}}" -H"Content-type: application/json"  -H "Authorization: Bearer ${admin_user_token}" ${GITEASRVNAME}:3001/api/v1/user/applications/oauth2)
+  oauth_app_json_blob=$(curl -d"${jsonbody/--DRONE--/${DRONESERVNAME}}" -H"Content-type: application/json"  -H "Authorization: Bearer ${admin_user_token}" ${GITEASRVNAME}:${GITEAPORT}/api/v1/user/applications/oauth2)
   export DRONE_GITEA_CLIENT_ID=$(echo "${oauth_app_json_blob}" | jq '.client_id' | sed 's/"//g')
   export DRONE_GITEA_CLIENT_SECRET=$(echo "${oauth_app_json_blob}" | jq '.client_secret' | sed 's/"//g')
   echo "DRONE_GITEA_CLIENT_ID ${DRONE_GITEA_CLIENT_ID}"
@@ -71,7 +79,7 @@ then
   echo "Creating repo drone_test_world"
    curl -d'{"name":"drone_test_world","default_branch":"main"}' \
    -H "Authorization: Bearer ${admin_user_token}" \
-   -H"Content-Type: application/json" ${GITEASRVNAME}:3001/api/v1/user/repos
+   -H"Content-Type: application/json" ${GITEASRVNAME}:${GITEAPORT}/api/v1/user/repos
 
 else
   echo "gitea already running"
@@ -86,7 +94,7 @@ then
     --volume="${SCRIPT_DIR}/volumes/drone:/data" \
     --env=DRONE_GITEA_CLIENT_ID=${DRONE_GITEA_CLIENT_ID} \
     --env=DRONE_GITEA_CLIENT_SECRET=${DRONE_GITEA_CLIENT_SECRET} \
-    --env=DRONE_GITEA_SERVER=http://${GITEASRVNAME}:3001 \
+    --env=DRONE_GITEA_SERVER=http://${GITEASRVNAME}:${GITEAPORT} \
     --env=DRONE_RPC_SECRET=${LOCAL_DRONE_SECRET} \
     --env=DRONE_SERVER_PROTO=${DRONEURIPROTO} \
     --env=DRONE_SERVER_HOST=${DRONESERVNAME} \
