@@ -16,7 +16,7 @@ steps:
   image: docker:git
   ## If you wanted to solve resolving part
   extra_hosts:
-    - localgitea.local: 172.22.0.2 
+    - "localgitea.local: 172.22.0.2"
   commands:
     - git clone http://localgitea.local:3001/shiftedmr/drone_test_world.git
 
