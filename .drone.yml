@@ -8,8 +8,6 @@ volumes:
 - name: gopath
   temp: {}
 
-clone:
-  disable: true
 
 steps:
 - name: test
