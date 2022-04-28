@@ -1,7 +1,12 @@
 #! /usr/bin/env bash
 # Bail from script if any command fails
 # uncomment for debug
-set -x
+DEBUG="${SCRIPTDEBUG:-"false"}"
+if [[ "${DEBUG}" == "true" ]]
+then
+  set -x
+fi
+
 set -e
 localenvpath=".localenv"
 localgiteaenvpath=".localenv.gitea"
