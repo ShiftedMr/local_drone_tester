@@ -1,17 +1,18 @@
 #! /usr/bin/env bash
 # Bail from script if any command fails
-# uncomment for debug
+set -e
 DEBUG="${SCRIPTDEBUG:-"false"}"
 # Arrays must be same length. Syntax is such as this was developed using the old version of bash on stupid osx
 declare -a prereq_cmds=( "docker" "jq" "go" "make" )
 declare -a prereq_cmds_exist=( 0 0 0 0 )
+
 if [[ "${DEBUG}" == "true" ]]
 then
   set -x
 fi
 
 debug_output () {
-  if [[ "${DEBUG}" != "short" ]]
+  if [[ "${DEBUG}" == "short" ]] || [[ "${DEBUG}" == "true" ]]
   then
     echo "$*"
   fi
@@ -48,12 +49,8 @@ else
   debug_output "All prereq commands were found"
 fi
 
-set -e
 localenvpath=".localenv"
 localgiteaenvpath=".localenv.gitea"
-. ./.instantiate.sh ${localenvpath}
-. ./${localenvpath} # source the localenv file created by instantiate
-. ./${localgiteaenvpath} # source the localenv for gitea in case we're doing a relaunch of drone
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 DVNAME="localvalidator.local"
 DRONESERVNAME=${DRONEHOST:-"localdrone.local"}
@@ -66,6 +63,9 @@ GiteaImg="localgitea"
 ValidatorImage="localvalidator"
 ValidatorPassString="vvv" #validatorpassmeplease
 
+. ./.instantiate.sh ${localenvpath}
+. ./${localenvpath} # source the localenv file created by instantiate
+. ./${localgiteaenvpath} # source the localenv for gitea in case we're doing a relaunch of drone
 # Variables for Checking if systems are running
 dvalidrunning=$(docker ps -f "name=${DVNAME}" --format '{{.Names}}'|wc -l)
 dserverrunning=$(docker ps -f "name=${DRONESERVNAME}" --format '{{.Names}}'|wc -l)
@@ -85,10 +85,10 @@ GITEAPORT=${GITEAPORT:-"3001"}
 
 #functions for managing services
 
-stopAndRemove () {
+stopAndRemoveContainers () {
   if [[ "$#" -eq "1" ]]
   then
-    docker ps -f "name=${1}" --format '{{.Names}}' && docker stop ${1} && docker rm ${1}
+   ign_outp=$(docker ps -f "name=${1}" --format '{{.Names}}' && docker stop ${1} && docker rm ${1} )
   fi
 }
 
@@ -209,10 +209,10 @@ startDroneServer() {
 # stopping and removing images
 if [[ "$#" -gt "0" ]] && [[ "$1" == "stop" ]]
 then
-  stopAndRemove ${DRONESERVNAME}
-  stopAndRemove ${DRONERUNNAME}
-  stopAndRemove ${DVNAME}
-  stopAndRemove ${GITEASRVNAME}
+  stopAndRemoveContainers ${DRONESERVNAME}
+  stopAndRemoveContainers ${DRONERUNNAME}
+  stopAndRemoveContainers ${DVNAME}
+  stopAndRemoveContainers ${GITEASRVNAME}
   if [[ "$2" == "vols" ]]
   then
     [ -d "${SCRIPT_DIR}/volumes/giteavol" ] && rm -rf "${SCRIPT_DIR}/volumes/giteavol"
@@ -237,14 +237,17 @@ fi
 # rebuild and relaunch validator
 if [[ "$#" -gt "1" ]] && [[ "$1" == "rebuild" ]] && [[ "$2" == "validator" ]]
 then
-  cd ${SCRIPT_DIR}/${ValidatorImage}-builddir/
-  make build
-  cd ${SCRIPT_DIR}
-  makeImage ${ValidatorImage}
   if [[ "${dvalidrunning}" -gt "0" ]]
   then
-    stopAndRemove ${DVNAME}
+    stopAndRemoveContainers ${DVNAME}
   fi
+  cd ${SCRIPT_DIR}/${ValidatorImage}-builddir/
+  echo "(suppressing output) Running make build on ${ValidatorImage}. output sent to ${ValidatorImage}-builddir/${ValidatorImage}-builddir.build_output"
+  make build &> ${ValidatorImage}-builddir.build_output
+  cd ${SCRIPT_DIR}
+  echo "(suppressing output) Running docker build on ${ValidatorImage}. output sent to ${ValidatorImage}-builddir/${ValidatorImage}-builddir.imagebuild_output"
+  makeImage ${ValidatorImage} &> ${SCRIPT_DIR}/${ValidatorImage}-builddir/${ValidatorImage}-builddir.imagebuild_output
+  dvalidrunning=$(docker ps -f "name=${DVNAME}" --format '{{.Names}}'|wc -l)
   if [[ "${dvalidrunning}" -eq "0" ]]
   then
     startValidator
