@@ -1,4 +1,4 @@
 volumes/*
 # to ignore localenv and any related backup files someone makes
-*localenv
+*localenv*
 release

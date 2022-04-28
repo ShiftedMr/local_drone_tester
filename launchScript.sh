@@ -6,7 +6,8 @@ set -e
 localenvpath=".localenv"
 localgiteaenvpath=".localenv.gitea"
 . ./.instantiate.sh ${localenvpath}
-. ./${localenvpath} # source the localenv vile created by instantiate
+. ./${localenvpath} # source the localenv file created by instantiate
+. ./${localgiteaenvpath} # source the localenv for gitea in case we're doing a relaunch of drone
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 DVNAME="localvalidator.local"
 DRONESERVNAME=${DRONEHOST:-"localdrone.local"}
