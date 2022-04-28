@@ -2,6 +2,10 @@ Automating a simple drone server to be spun up when working on extensions
 
 Prereq:
   Have docker running (docker desktop if on osx)
+  JQ must be installed for command line
+  docker cli must be useable
+  golang must be accessible from terminal env
+  bash support for launch script
 
 STEPS TO CONFIGURE
 1: clone repo
