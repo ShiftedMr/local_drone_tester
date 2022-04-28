@@ -11,8 +11,12 @@ STEPS TO CONFIGURE
 1: clone repo
 2: If using defaults set up your /etc/hosts file to point at the hosts we'll be using
 ```
+# for local drone_test_world
 127.0.0.1 localgitea.local
 127.0.0.1 localdrone.local
+127.0.0.1 localvalidator.local
+# End of section
+
 ```
 Note: if you want to use different hostnames change them above and use the same ones when asked by the launch script
 
@@ -30,4 +34,5 @@ Answer the question with best data; Git username should be whatever you're using
 10: fill out form with whatever info you want
 11: activate the repo by navigating to it and clicking activate
 12: in terminal do git push
-13: a build should start :) 
+`git push --all localgitea`
+13: a build should start :) (and likely fail unless the last commit had the secret string for validator. Build right now doesn't actually do anything useful) 

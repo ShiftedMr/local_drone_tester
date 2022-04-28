@@ -61,7 +61,7 @@ LOCAL_DRONE_SECRET=${LOCAL_DRONE_SECRET:-285aa134b2cd18ca2c3046e2b05a63bb}
 #local docker image names
 GiteaImg="localgitea"
 ValidatorImage="localvalidator"
-ValidatorPassString="vvv" #validatorpassmeplease
+ValidatorPassString="shiboleet" #validatorpassmeplease
 
 . ./.instantiate.sh ${localenvpath}
 . ./${localenvpath} # source the localenv file created by instantiate
