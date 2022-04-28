@@ -1,6 +1,8 @@
 #! /usr/bin/env bash
 # Bail from script if any command fails
-set -xe
+# uncomment for debug
+# set -x
+set -e
 localenvpath=".localenv"
 . ./.instantiate.sh ${localenvpath}
 . ./${localenvpath} # source the localenv vile created by instantiate
@@ -59,7 +61,10 @@ fi
 if [[ "$#" -gt "0" ]] && [[ "$1" == "build" ]]
 then
   makeImage ${GiteaImg}
-  makeImage ${validatorimagecount}
+  cd ${SCRIPT_DIR}/${ValidatorImage}-builddir/
+  make build
+  cd ${SCRIPT_DIR}
+  makeImage ${ValidatorImage}
   exit 0
 fi
 
@@ -88,6 +93,9 @@ then
   fi
   if [[ "${validatorimagecount}" -eq "0" ]]
   then
+    cd ${SCRIPT_DIR}/${ValidatorImage}-builddir/
+    make build
+    cd ${SCRIPT_DIR}
     makeImage ${ValidatorImage}
   fi
 fi
