@@ -51,6 +51,7 @@ func main() {
 		logrus.StandardLogger(),
 	)
 
+	logrus.Infof("Proof I restarted %s", spec.PassString)
 	logrus.Infof("server listening on address %s", spec.Bind)
 
 	http.Handle("/", handler)
