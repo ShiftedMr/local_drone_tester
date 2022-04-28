@@ -2,9 +2,50 @@
 # Bail from script if any command fails
 # uncomment for debug
 DEBUG="${SCRIPTDEBUG:-"false"}"
+# Arrays must be same length. Syntax is such as this was developed using the old version of bash on stupid osx
+declare -a prereq_cmds=( "docker" "jq" "go" "make" )
+declare -a prereq_cmds_exist=( 0 0 0 0 )
 if [[ "${DEBUG}" == "true" ]]
 then
   set -x
+fi
+
+debug_output () {
+  if [[ "${DEBUG}" != "short" ]]
+  then
+    echo "$*"
+  fi
+}
+
+debug_output "Prereq commands docker_exists: ${docker_exists}; jq_exists: ${jq_exists}; go_exists: ${go_exists}; make_exists: ${make_exists};"
+debug_output "array: ${prereq_cmds[@]}"
+cmdarraylength=${#prereq_cmds[@]}
+for (( i=0; i<${cmdarraylength}; i++ ));
+do
+	debug_output "${prereq_cmds[$i]}"
+	debug_output "cmd ${prereq_cmds[$i]}"
+  ign_outp=$(type -t ${prereq_cmds[$i]})
+  exists=$?
+  debug_output "${prereq_cmds[$i]} exists (1 means no)? index $i $(type -t ${exists})"
+  prereq_cmds_exist[$i]=$exists
+done
+
+missing_cmd="false"
+for (( i=0; i<${cmdarraylength}; i++ ));
+do
+  if [[ "${prereq_cmds_exist[${i}]}" -ne 0 ]]
+  then
+    echo "cmd ${prereq_cmds[${i}]} is missing"
+    missing_cmd="true"
+  fi
+done
+
+if [[ "${missing_cmd}" == "true" ]]
+then
+  echo "exiting due to missing prereq commands"
+  exit 1
+else
+  debug_output "All prereq commands were found"
 fi
 
 set -e
