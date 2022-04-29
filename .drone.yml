@@ -8,6 +8,7 @@ volumes:
 - name: gopath
   temp: {}
 
+
 steps:
 - name: test
   image: golang:1.17
@@ -15,7 +16,9 @@ steps:
   - name: gopath
     path: /go  
   commands:
-  - make test
+    - echo "plz"
+    - wget http://localgitea.local:3001/shiftedmr/drone_test_world
+    - echo "helloworld"
 
 - name: build
   image: golang:1.17
